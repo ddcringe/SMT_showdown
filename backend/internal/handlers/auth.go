@@ -6,7 +6,8 @@ import (
 
 	"github.com/ddcringe/SMT_showdown/internal/models"
 	"github.com/ddcringe/SMT_showdown/internal/repository"
-	"github.com/ddcringe/SMT_showdown/pkg/auth"
+	"github.com/ddcringe/SMT_showdown/pkg"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )

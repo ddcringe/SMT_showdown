@@ -6,7 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("your-very-secret-key") // Должно быть в .env
+var jwtSecret = []byte("b9f02e572558ae7dac150d2b77159441327f5e28b9239db2b919078e98598ab8") // Должно быть в .env
 
 type Claims struct {
 	UserID int `json:"user_id"`
@@ -21,7 +21,7 @@ func GenerateToken(userID int) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "smt-battle-api",
+			Issuer:    "SMT_showdown-api",
 		},
 	}
 

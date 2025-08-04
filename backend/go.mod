@@ -2,6 +2,8 @@ module github.com/ddcringe/SMT_showdown
 
 go 1.18
 
+//replace github.com/ddcringe/SMT_showdown => ./
+
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.0.0

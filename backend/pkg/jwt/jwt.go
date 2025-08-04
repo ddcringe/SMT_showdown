@@ -1,4 +1,4 @@
-package auth
+package jwt
 
 import (
 	"time"
@@ -6,7 +6,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtSecret = []byte("b9f02e572558ae7dac150d2b77159441327f5e28b9239db2b919078e98598ab8") // Должно быть в .env
+var (
+	SecretKey = []byte("your-strong-secret-key")
+	Issuer    = "smt-showdown-api"
+)
 
 type Claims struct {
 	UserID int `json:"user_id"`
@@ -14,24 +17,25 @@ type Claims struct {
 }
 
 func GenerateToken(userID int) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-
 	claims := &Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "SMT_showdown-api",
+			Issuer:    Issuer,
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return token.SignedString(SecretKey)
 }
 
-func ValidateToken(tokenString string) (*Claims, error) {
+func ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return jwtSecret, nil
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return SecretKey, nil
 	})
 
 	if err != nil {

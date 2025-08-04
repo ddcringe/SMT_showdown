@@ -6,36 +6,45 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var (
-	SecretKey = []byte("your-strong-secret-key")
-	Issuer    = "smt-showdown-api"
-)
-
 type Claims struct {
 	UserID int `json:"user_id"`
 	jwt.RegisteredClaims
 }
+type TokenUtil struct {
+	secret []byte
+	ttl    time.Duration
+}
 
-func GenerateToken(userID int) (string, error) {
+// NewTokenUtil создает новый экземпляр JWT утилиты
+func NewTokenUtil(secret string, ttl time.Duration) *TokenUtil {
+	return &TokenUtil{
+		secret: []byte(secret),
+		ttl:    ttl,
+	}
+}
+
+// GenerateToken создает новый JWT токен
+func (t *TokenUtil) GenerateToken(userID int) (string, error) {
 	claims := &Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(t.ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    Issuer,
+			Issuer:    "smt-showdown-api",
 		},
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(SecretKey)
+	return token.SignedString(t.secret)
 }
 
-func ParseToken(tokenString string) (*Claims, error) {
+// ParseToken валидирует и парсит JWT токен
+func (t *TokenUtil) ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
-		return SecretKey, nil
+		return t.secret, nil
 	})
 
 	if err != nil {

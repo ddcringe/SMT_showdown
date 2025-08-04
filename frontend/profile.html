@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - SMT Showdown</title>
+    <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="profile-header">
+            <h1>User Profile</h1>
+            <a href="index.html" class="back-link">← Back to Main</a>
+        </div>
+        
+        <div class="profile-content">
+            <div class="avatar-section">
+                <img id="avatar-img" src="" alt="Avatar" class="avatar">
+                <input type="text" id="avatar-url" placeholder="New avatar URL">
+                <button onclick="updateAvatar()">Update Avatar</button>
+            </div>
+            
+            <div class="info-section">
+                <p><strong>Username:</strong> <span id="username"></span></p>
+                <p><strong>Email:</strong> <span id="email"></span></p>
+                <p><strong>Member since:</strong> <span id="joined-at"></span></p>
+                
+                <div class="bio-section">
+                    <h3>Bio</h3>
+                    <textarea id="bio-input" rows="4"></textarea>
+                    <button onclick="updateBio()">Update Bio</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/frontend/js/profile.js"></script>
+</body>
+</html>

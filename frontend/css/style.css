@@ -265,3 +265,124 @@ button {
 button:hover {
     background: #6e6eb8;
 }
+/* Добавляем в существующие стили */
+.form-wrapper {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: rgba(40, 40, 60, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.error-message {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+    display: none;
+}
+
+.login-link {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: #aaa;
+}
+
+.login-link a {
+    color: #f8bb44;
+    text-decoration: none;
+}
+
+.button {
+    position: relative;
+}
+
+.spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 0.5rem;
+}
+
+.spinner.hidden {
+    display: none;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+/* Login Page */
+.register-link {
+    margin-top: 1.5rem;
+    text-align: center;
+    color: #aaa;
+}
+
+.register-link a {
+    color: #f8bb44;
+    text-decoration: none;
+}
+
+/* Profile Page */
+.logout-btn {
+    background: #d9534f;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: #c9302c;
+}
+
+.profile-field {
+    margin-bottom: 1rem;
+}
+
+.profile-field label {
+    font-weight: bold;
+    color: #f8bb44;
+    display: inline-block;
+    width: 120px;
+}
+
+.stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.stats span {
+    background: rgba(46, 49, 72, 0.7);
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+}
+
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    border-radius: 4px;
+    color: white;
+    z-index: 1000;
+    animation: fadeIn 0.3s;
+}
+
+.toast-success {
+    background: #5cb85c;
+}
+
+.toast-error {
+    background: #d9534f;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}

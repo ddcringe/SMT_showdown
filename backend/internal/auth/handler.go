@@ -1,120 +1,256 @@
 package auth
 
 import (
-	"net/http"
+	"context"
+	"database/sql"
+	"errors"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ddcringe/SMT_showdown/internal/models"
-	"github.com/ddcringe/SMT_showdown/internal/repository"
-	"github.com/ddcringe/SMT_showdown/pkg/jwt"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/jmoiron/sqlx"
 )
 
-type Handler struct {
-	userRepo *repository.UserRepository
+type UserRepository struct {
+	db *sqlx.DB
 }
 
-func NewHandler(userRepo *repository.UserRepository) *Handler {
-	return &Handler{userRepo: userRepo}
+func NewUserRepository(db *sqlx.DB) *UserRepository {
+	return &UserRepository{db: db}
 }
 
-// ... (остальные структуры RegisterRequest, LoginRequest, AuthResponse остаются такими же)
-type RegisterRequest struct {
-	Username string `json:"username" binding:"required,min=3,max=30"`
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8"`
-}
+// CreateUser создает нового пользователя
+func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) error {
+	query := `
+		INSERT INTO users (
+			username, 
+			email, 
+			password_hash, 
+			created_at,
+			bio,
+			avatar_url
+		) VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
 
-// LoginRequest структура запроса входа
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
-}
+	err := r.db.QueryRowContext(
+		ctx,
+		query,
+		user.Username,
+		user.Email,
+		user.PasswordHash,
+		time.Now(),
+		user.Bio,
+		user.AvatarURL,
+	).Scan(&user.ID)
 
-// AuthResponse структура ответа с токеном
-type AuthResponse struct {
-	Token     string `json:"token"`
-	ExpiresAt int64  `json:"expires_at"` // Unix timestamp
-}
-
-func (h *Handler) Register(c *gin.Context) {
-	var req RegisterRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	exists, err := h.userRepo.UserExists(req.Username, req.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
-	}
-	if exists {
-		c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
-		return
+		return err
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
-		return
-	}
-
-	user := models.User{
-		Username:     req.Username,
-		Email:        req.Email,
-		PasswordHash: string(hashedPassword),
-		CreatedAt:    time.Now(),
-	}
-
-	if err := h.userRepo.CreateUser(&user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create user"})
-		return
-	}
-
-	token, err := jwt.GenerateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, AuthResponse{
-		Token:     token,
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
-	})
+	return nil
 }
 
-func (h *Handler) Login(c *gin.Context) {
-	var req LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// GetUserByID возвращает пользователя по ID
+func (r *UserRepository) GetUserByID(ctx context.Context, id int) (*models.User, error) {
+	query := `
+		SELECT 
+			id,
+			username,
+			email,
+			password_hash,
+			created_at,
+			last_login,
+			bio,
+			avatar_url
+		FROM users
+		WHERE id = $1
+	`
 
-	user, err := h.userRepo.GetUserByEmail(req.Email)
+	var user models.User
+	err := r.db.GetContext(ctx, &user, query, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
-		return
-	}
-	if user == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
-		return
-	}
-
-	token, err := jwt.GenerateToken(user.ID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
-		return
-	}
-
-	c.JSON(http.StatusOK, AuthResponse{
-		Token:     token,
-		ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
-	})
+	return &user, nil
 }
+
+// GetUserByEmail возвращает пользователя по email
+func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	query := `
+		SELECT 
+			id,
+			username,
+			email,
+			password_hash,
+			created_at,
+			last_login,
+			bio,
+			avatar_url
+		FROM users
+		WHERE email = $1
+	`
+
+	var user models.User
+	err := r.db.GetContext(ctx, &user, query, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// UpdateUser обновляет данные пользователя
+func (r *UserRepository) UpdateUser(ctx context.Context, user *models.User) error {
+	query := `
+		UPDATE users SET
+			username = $1,
+			email = $2,
+			bio = $3,
+			avatar_url = $4,
+			last_login = $5
+		WHERE id = $6
+	`
+
+	result, err := r.db.ExecContext(
+		ctx,
+		query,
+		user.Username,
+		user.Email,
+		user.Bio,
+		user.AvatarURL,
+		user.LastLogin,
+		user.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// UpdatePassword обновляет пароль пользователя
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID int, newHash string) error {
+	query := `
+		UPDATE users SET
+			password_hash = $1
+		WHERE id = $2
+	`
+
+	result, err := r.db.ExecContext(ctx, query, newHash, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+// UserExists проверяет существование пользователя
+func (r *UserRepository) UserExists(ctx context.Context, username, email string) (bool, error) {
+	query := `
+		SELECT EXISTS(
+			SELECT 1 FROM users 
+			WHERE username = $1 OR email = $2
+		)
+	`
+
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, username, email).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
+// GetUserProfile возвращает профиль пользователя
+func (r *UserRepository) GetUserProfile(ctx context.Context, userID int) (*models.UserProfile, error) {
+	query := `
+		SELECT 
+			id,
+			username,
+			email,
+			created_at,
+			bio,
+			avatar_url
+		FROM users
+		WHERE id = $1
+	`
+
+	var profile models.UserProfile
+	err := r.db.GetContext(ctx, &profile, query, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &profile, nil
+}
+
+// UpdateUserProfile обновляет профиль пользователя
+func (r *UserRepository) UpdateUserProfile(ctx context.Context, userID int, updates map[string]interface{}) error {
+	if len(updates) == 0 {
+		return nil
+	}
+
+	query := `UPDATE users SET `
+	params := []interface{}{}
+	paramCounter := 1
+
+	for field, value := range updates {
+		query += field + " = $" + strconv.Itoa(paramCounter) + ", "
+		params = append(params, value)
+		paramCounter++
+	}
+
+	query = strings.TrimSuffix(query, ", ")
+	query += " WHERE id = $" + strconv.Itoa(paramCounter)
+	params = append(params, userID)
+
+	result, err := r.db.ExecContext(ctx, query, params...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+var ErrNotFound = errors.New("user not found")

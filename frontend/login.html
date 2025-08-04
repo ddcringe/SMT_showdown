@@ -3,18 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log In - SMT4 Battle</title>
-    <link rel="stylesheet" href="./css/style.css">
+    <title>Log In - SMT Showdown</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="form-container">
-        <h2>Log In</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Enter the Gauntlet</button>
-        </form>
-        <a href="index.html" class="back-link">← Back to Main Menu</a>
+        <div class="form-wrapper">
+            <h2>Enter the Gauntlet</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                    <div class="error-message" id="email-error"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                    <div class="error-message" id="password-error"></div>
+                </div>
+                
+                <button type="submit" class="button button-block" id="login-btn">
+                    <span class="button-text">Log In</span>
+                    <span class="spinner hidden" id="spinner"></span>
+                </button>
+            </form>
+            
+            <div class="register-link">
+                Don't have an account? <a href="register.html">Register</a>
+            </div>
+        </div>
     </div>
+
+    <script src="js/login.js"></script>
 </body>
 </html>
